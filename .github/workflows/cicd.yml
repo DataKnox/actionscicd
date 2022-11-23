@@ -53,7 +53,7 @@ jobs:
       zip -qq -r ./deploymenttemplates/armtemplates.zip ./armTemplate
 
   - name: Upload ARM Temp Artifact
-    continue-on-error: false:
+    continue-on-error: false
     uses: actions/upload-artifact@v2
     with:
       name: deploymenttemplates
@@ -99,7 +99,7 @@ jobs:
         inlineScript: |
           az group create --name "${{ env.RESOURCEGROUPNAME }}" --location "${{ env.LOCATION }}"
           az deployment group create --resource-group "${{ env.RESOURCEGROUPNAME }}" --template-file ./armTemplate/appsvc.json --parameters webAppName="${{ env.AZURE_WEBAPP_NAME }}" hostingPlanName="${{ env.HOSTINGPLANNAME }}" appInsightsLocation="${{ env.APPINSIGHTLOCATION }}" sku="${{ env.SKU }}"
-          
+
     - name: Deploy the Web App
       uses: azure/webapps-deploy@v2
       with:
