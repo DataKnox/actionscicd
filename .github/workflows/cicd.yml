@@ -1,0 +1,109 @@
+name: Build and Deploy node app to Azure
+on:
+  push:
+    branches:
+      - main
+
+env:
+  AZURE_WEBAPP_NAME: "actionscicd-knox"
+  AZURE_WEBAPP_PACKAGE_PATH: "build"
+  NODE_VERSION: '16.16.0'
+  RESOURCEGROUPNAME: "actionscicd"
+  LOCATION: "eastus"
+  HOSTINGPLANNAME: "actionscicd-plan"
+  APPINSIGHTLOCATION: "eastus"
+  SKU: "S1 Standard"
+
+jobs:
+  build:
+  name: Build and Publish
+  runs-on: ubuntu-latest
+  steps:
+  - uses: actions/checkout@v2
+
+  - name: Use Node ${{ env.NODE_VERSION }}
+    uses: actions/setup-node@v1
+    with:
+      node-version: ${{ env.NODE_VERSION }}
+
+  - name: Build project
+    continue-on-error: false
+    run: |
+      npm install
+      npm run build
+
+  - name: Create Artifact Dirs
+    run: | 
+      mkdir buildartifacts
+      mkdir deploymenttemplates
+
+  - name: Archive app
+    run: |
+      zip -qq -r ./buildartifacts/Application.zip ./build
+
+  - name: Upload Build Artifact
+    continue-on-error: false
+    uses: actions/upload-artifact@v2
+    with:
+      name: buildartifacts
+      path: buildartifacts
+
+  - name: Archive ARM Temps
+    run: |
+      zip -qq -r ./deploymenttemplates/armtemplates.zip ./armTemplate
+
+  - name: Upload ARM Temp Artifact
+    continue-on-error: false:
+    uses: actions/upload-artifact@v2
+    with:
+      name: deploymenttemplates
+      path: deploymenttemplates
+
+  Deploy:
+    name: Deploy ARM resource and web app
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download build artifact
+      uses: actions/download-artifact@v2
+      continue-on-error: false
+      with:
+        name: buildartifacts
+        path: buildartifacts
+
+    - name: Download the ARM artifact
+      uses: actions/download-artifact@v2
+      continue-on-error: false
+      with:
+        name: deploymenttemplates
+        path: deploymenttemplates
+
+    - name: Unzip build
+      run: |
+        unzip -qq ./buildartifacts/Application.zip -d .
+
+    - name: Unzip ARM Templs
+      run: |
+        unzip -qq ./deploymenttemplates/armtemplates.zip -d .
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      continue-on-error: false
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy ARM Template
+      uses: azure/CLI@v1
+      continue-on-error: false
+      with:
+        inlineScript: |
+          az group create --name "${{ env.RESOURCEGROUPNAME }}" --location "${{ env.LOCATION }}"
+          az deployment group create --resource-group "${{ env.RESOURCEGROUPNAME }}" --template-file ./armTemplate/appsvc.json --parameters webAppName="${{ env.AZURE_WEBAPP_NAME }}" hostingPlanName="${{ env.HOSTINGPLANNAME }}" appInsightsLocation="${{ env.APPINSIGHTLOCATION }}" sku="${{ env.SKU }}"
+          
+    - name: Deploy the Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ${{ env.AZURE_WEBAPP_PACKAGE_PATH }}
+
+    
