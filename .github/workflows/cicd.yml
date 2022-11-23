@@ -16,48 +16,48 @@ env:
 
 jobs:
   build:
-  name: Build and Publish
-  runs-on: ubuntu-latest
-  steps:
-  - uses: actions/checkout@v2
+    name: Build and Publish
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
 
-  - name: Use Node ${{ env.NODE_VERSION }}
-    uses: actions/setup-node@v1
-    with:
-      node-version: ${{ env.NODE_VERSION }}
+    - name: Use Node ${{ env.NODE_VERSION }}
+      uses: actions/setup-node@v1
+      with:
+        node-version: ${{ env.NODE_VERSION }}
 
-  - name: Build project
-    continue-on-error: false
-    run: |
-      npm install
-      npm run build
+    - name: Build project
+      continue-on-error: false
+      run: |
+        npm install
+        npm run build
 
-  - name: Create Artifact Dirs
-    run: | 
-      mkdir buildartifacts
-      mkdir deploymenttemplates
+    - name: Create Artifact Dirs
+      run: | 
+        mkdir buildartifacts
+        mkdir deploymenttemplates
 
-  - name: Archive app
-    run: |
-      zip -qq -r ./buildartifacts/Application.zip ./build
+    - name: Archive app
+      run: |
+        zip -qq -r ./buildartifacts/Application.zip ./build
 
-  - name: Upload Build Artifact
-    continue-on-error: false
-    uses: actions/upload-artifact@v2
-    with:
-      name: buildartifacts
-      path: buildartifacts
+    - name: Upload Build Artifact
+      continue-on-error: false
+      uses: actions/upload-artifact@v2
+      with:
+        name: buildartifacts
+        path: buildartifacts
 
-  - name: Archive ARM Temps
-    run: |
-      zip -qq -r ./deploymenttemplates/armtemplates.zip ./armTemplate
+    - name: Archive ARM Temps
+      run: |
+        zip -qq -r ./deploymenttemplates/armtemplates.zip ./armTemplate
 
-  - name: Upload ARM Temp Artifact
-    continue-on-error: false
-    uses: actions/upload-artifact@v2
-    with:
-      name: deploymenttemplates
-      path: deploymenttemplates
+    - name: Upload ARM Temp Artifact
+      continue-on-error: false
+      uses: actions/upload-artifact@v2
+      with:
+        name: deploymenttemplates
+        path: deploymenttemplates
 
   Deploy:
     name: Deploy ARM resource and web app
